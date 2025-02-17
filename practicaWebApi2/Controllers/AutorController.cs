@@ -83,8 +83,8 @@ namespace practicaWebApi2.Controllers
         public IActionResult Actualiar(int id, [FromBody] Autor autorActualizar)
         {
             Autor? autorActual = (from a in _autoresContexto.Autor
-                                 where a.Id == id
-                                 select a).FirstOrDefault();
+                                  where a.Id == id
+                                  select a).FirstOrDefault();
 
             if (autorActual == null)
             {
@@ -106,8 +106,8 @@ namespace practicaWebApi2.Controllers
         public IActionResult Eliminar(int id)
         {
             Autor? autor = (from a in _autoresContexto.Autor
-                                  where a.Id == id
-                                  select a).FirstOrDefault();
+                            where a.Id == id
+                            select a).FirstOrDefault();
 
 
             if (autor == null)
@@ -120,7 +120,130 @@ namespace practicaWebApi2.Controllers
             _autoresContexto.SaveChanges();
 
             return Ok(autor);
-
         }
+
+        [HttpGet]
+        [Route("GetCantidadLibros/{id}")]
+        public IActionResult GetCantidadLibros(int id)
+        {
+            var cantidadLibros = (from a in _autoresContexto.Autor
+                                  join l in _autoresContexto.Libro
+                                  on a.Id equals l.AutorId
+                                  where a.Id == id
+                                  group l by a.Nombre into g
+                                  select new
+                                  {
+                                      Nombre = g.Key,
+                                      Total = g.Count()
+                                  }).ToList();
+
+            if (cantidadLibros == null)
+            {
+                return NotFound();
+
+            }
+
+            return Ok(cantidadLibros);
+        }
+
+        [HttpGet]
+        [Route("GetAutoresTop")]
+        public IActionResult GetAutoresTop()
+        {
+            /*var cantidadLibros = (from a in _autoresContexto.Autor
+                                  join l in _autoresContexto.Libro
+                                  on a.Id equals l.AutorId
+                                  group l by a.Nombre into g
+                                  select new
+                                  {
+                                      Nombre = g.Key,
+                                      Total = g.Count()
+                                  }).OrderByDescending(tot => tot.Total).Take(3).ToList();*/
+
+            var cantidadLibros = (from a in _autoresContexto.Autor
+                                  join l in _autoresContexto.Libro
+                                  on a.Id equals l.AutorId
+                                  group l by a.Nombre into g
+                                  orderby g.Count() descending
+                                  select new
+                                  {
+                                      Nombre = g.Key,
+                                      Total = g.Count()
+                                  }).Take(3).ToList();
+
+            if (cantidadLibros == null)
+            {
+                return NotFound();
+
+            }
+
+            return Ok(cantidadLibros);
+        }
+
+        [HttpGet]
+        [Route("TieneLibros/{id}")]
+        public IActionResult TieneLibros(int id)
+        {
+            // Verificar si el autor existe
+            var autorExiste = (from a in _autoresContexto.Autor
+                               where a.Id == id
+                               select a).FirstOrDefault();
+
+            if (autorExiste == null)
+            {
+                return NotFound(new { Mensaje = "Autor no encontrado" });
+            }
+
+            var cantidadLibros = (from l in _autoresContexto.Libro
+                                  where l.AutorId == id
+                                  select l).ToList();
+
+
+            if (cantidadLibros.Count > 0)
+            {
+                return Ok(new { AutorId = id, TieneLibros = true });
+            }
+            else
+            {
+                return Ok(new { AutorId = id, TieneLibros = false });
+            }
+        }
+
+        [HttpGet]
+        [Route("PrimerLibro/{id}")]
+        public IActionResult PrimerLibro(int id)
+        {
+            // Verificar si el autor existe
+            var autorExiste = (from a in _autoresContexto.Autor
+                               where a.Id == id
+                               select a).FirstOrDefault();
+
+            if (autorExiste == null)
+            {
+                return NotFound(new { Mensaje = "Autor no encontrado" });
+            }
+
+            var primerLibro = (from l in _autoresContexto.Libro
+                               where l.AutorId == id
+                               orderby l.Anyopublicacion ascending
+                               select new
+                               {
+                                   l.Titulo,
+                                   l.Anyopublicacion,
+                                   l.AutorId,
+                               }).FirstOrDefault();
+
+
+            if (primerLibro != null)
+            {
+                return Ok(primerLibro);
+            }
+            else
+            {
+                return Ok(new { AutorId = id, TieneLibros = false });
+            }
+        }
+
+
     }
 }

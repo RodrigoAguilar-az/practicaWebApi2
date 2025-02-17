@@ -122,11 +122,12 @@ namespace practicaWebApi2.Controllers
         }
 
         [HttpGet]
-        [Route("GetLibrosYear")]
-        public IActionResult GetLibrosYear()
+        [Route("GetLibrosMayor")]
+        public IActionResult GetLibrosMayor()
         {
             List<Libro> libros = (from l in _librosContexto.Libro
                                   where l.Anyopublicacion > 2000
+                                  orderby l.Anyopublicacion ascending
                                   select l).ToList();
 
             if (!libros.Any())
@@ -136,30 +137,6 @@ namespace practicaWebApi2.Controllers
             }
 
             return Ok(libros);
-        }
-
-        [HttpGet]
-        [Route("GetCantidadLibros/{id}")]
-        public IActionResult GetCantidadLibros(int id)
-        {
-            var cantidadLibros = (from a in _librosContexto.Autor
-                                  join l in _librosContexto.Libro
-                                  on a.Id equals l.AutorId
-                                  where a.Id == id
-                                  group l by a.Nombre into g
-                                  select new
-                                  {
-                                      Nombre = g.Key,
-                                      Total = g.Count()
-                                  }).ToList();
-
-            if (cantidadLibros == null)
-            {
-                return NotFound();
-
-            }
-
-            return Ok(cantidadLibros);
         }
 
 
@@ -202,6 +179,48 @@ namespace practicaWebApi2.Controllers
 
             return Ok(libros);
         }
+
+
+        [HttpGet]
+        [Route("GetLibrosRecientes")]
+        public IActionResult GetLibrosRecientes()
+        {
+            var libros = (from l in _librosContexto.Libro
+                          join a in _librosContexto.Autor
+                          on l.AutorId equals a.Id // tambien se podria esto aqui --> orderby l.Anyopublicacion descending
+                          select new
+                          {
+                              l.Titulo,
+                              l.Anyopublicacion,
+                              a.Nombre
+                          }).OrderByDescending(an => an.Anyopublicacion).Take(5).ToList();
+
+            return Ok(libros);
+        }
+
+        [HttpGet]
+        [Route("GetLibrosYear")]
+        public IActionResult GetLibrosYear()
+        {
+
+            var cantidadLibros = (from l in _librosContexto.Libro
+                                  group l by l.Anyopublicacion into g
+                                  orderby g.Count() descending
+                                  select new
+                                  {
+                                      AnyoPublicacion = g.Key,
+                                      Total = g.Count()
+                                  }).ToList();
+
+            if (cantidadLibros == null)
+            {
+                return NotFound();
+
+            }
+
+            return Ok(cantidadLibros);
+        }
+
         //
     }
 }
